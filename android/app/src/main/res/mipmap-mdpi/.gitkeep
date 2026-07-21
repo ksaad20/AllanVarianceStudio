@@ -1,0 +1,7 @@
+# Run this in your repo after creating directories
+mkdir -p android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}
+touch android/app/src/main/res/mipmap-mdpi/.gitkeep
+touch android/app/src/main/res/mipmap-hdpi/.gitkeep
+touch android/app/src/main/res/mipmap-xhdpi/.gitkeep
+touch android/app/src/main/res/mipmap-xxhdpi/.gitkeep
+touch android/app/src/main/res/mipmap-xxxhdpi/.gitkeep
