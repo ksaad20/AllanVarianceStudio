@@ -281,3 +281,10 @@ jobs:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn  # Don't fail silently
+
+                - name: Build Android Debug APK
+        run: cd android && ./gradlew assembleDebug --stacktrace --info
+
+      - name: Debug - List APK files
+        if: always()
+        run: find android -name "*.apk" -type f 2>/dev/null || echo "NO APK FOUND"
