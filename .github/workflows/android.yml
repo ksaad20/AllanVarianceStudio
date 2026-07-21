@@ -6,10 +6,6 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'android/**'
 
 jobs:
   build:
@@ -39,31 +35,43 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Verify gradlew exists
+      - name: Verify files exist
         run: |
+          echo "=== Current directory ==="
           pwd
+          echo "=== Listing all files in android/ ==="
+          ls -la
+          echo "=== Checking gradlew ==="
           ls -la gradlew
-          ls -la gradle/wrapper/
-          cat settings.gradle || echo "settings.gradle NOT FOUND"
+          echo "=== Checking settings.gradle ==="
+          cat settings.gradle
+          echo "=== Checking root build.gradle ==="
+          cat build.gradle
+          echo "=== Checking app/build.gradle ==="
+          cat app/build.gradle
+          echo "=== Checking wrapper properties ==="
+          cat gradle/wrapper/gradle-wrapper.properties
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --info
-        timeout-minutes: 15
+      - name: Build Debug APK (with full output)
+        run: |
+          ./gradlew assembleDebug --stacktrace --info --console=plain 2>&1
+        shell: bash
 
       - name: Verify APK exists
         if: always()
         run: |
-          echo "=== APK search ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "No APKs found"
+          echo "=== Searching for APK ==="
+          find . -name "*.apk" -type f 2>/dev/null || echo "NO APK FOUND"
           echo "=== Build outputs ==="
           ls -R app/build/outputs/ 2>/dev/null || echo "No outputs directory"
 
       - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn
+          if-no-files-found: error
