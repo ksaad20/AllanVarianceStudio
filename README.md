@@ -373,7 +373,7 @@ for quantitative biological motion analysis. [Journal]. [Year].
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) file.
+Apache - 2.0. See [LICENSE](LICENSE) file.
 
 ---
 
