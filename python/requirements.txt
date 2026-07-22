@@ -70,7 +70,7 @@ loguru>=0.7.0                 # Structured logging (replaces standard logging)
 # ========================================================================
 # TESTING & QUALITY ASSURANCE
 # ========================================================================
-pytest>=7.4.0                 # Unit testing framework
+pytest>=9.1.1                 # Unit testing framework
 pytest-cov>=4.1.0             # Code coverage reporting
 pytest-xdist>=3.3.0           # Parallel test execution
 hypothesis>=6.82.0              # Property-based testing for numerical stability
