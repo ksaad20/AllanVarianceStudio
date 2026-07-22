@@ -57,7 +57,7 @@ pingouin>=0.5.3               # Advanced statistics (Bland-Altman, ICC, reliabil
 # ========================================================================
 # CLINICAL DATA & REPORTING
 # ========================================================================
-reportlab>=4.0.0              # PDF report generation for clinical protocols
+reportlab>=5.0.0              # PDF report generation for clinical protocols
 fpdf2>=2.7.0                  # Alternative PDF generation (lighter weight)
 
 # ========================================================================
