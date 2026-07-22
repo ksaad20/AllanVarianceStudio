@@ -2,61 +2,121 @@ name: Android CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    name: Build Debug APK
+  build-android:
+
+    name: Build Android APK
+
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v5
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
 
-      - name: Verify all required files exist
-        run: |
-          echo "=== Repo root ==="
-          ls -la
-          echo "=== android/ directory ==="
-          ls -la android/
-          echo "=== android/app/src/main/ ==="
-          ls -R android/app/src/main/ 2>/dev/null || echo "src/main/ MISSING"
-          echo "=== gradlew check ==="
-          ls -la android/gradlew
-          file android/gradlew
-          echo "=== settings.gradle ==="
-          cat android/settings.gradle
-          echo "=== app build.gradle ==="
-          cat android/app/build.gradle
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
-
-      - name: Build Debug APK (will fail if error)
-        working-directory: ./android
-        run: |
-          ./gradlew clean
-          ./gradlew assembleDebug --stacktrace --info
+      - name: Verify Android project
         shell: bash
-
-      - name: Verify APK was created
-        if: always()
         run: |
-          echo "=== Search for APK ==="
-          find android -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || echo "NO APK FOUND"
-          echo "=== Build outputs ==="
-          ls -lhR android/app/build/outputs/ 2>/dev/null || echo "No outputs dir"
+          set -e
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v7
-        if: success()
+          if [ ! -d "android" ]; then
+            echo "Android directory missing"
+            exit 1
+          fi
+
+          if [ ! -f "android/gradlew" ]; then
+            echo "Gradle wrapper missing"
+            exit 1
+          fi
+
+          if [ ! -f "android/settings.gradle" ]; then
+            echo "settings.gradle missing"
+            exit 1
+          fi
+
+          if [ ! -f "android/app/build.gradle" ]; then
+            echo "app/build.gradle missing"
+            exit 1
+          fi
+
+          echo "Android project verified"
+
+
+      - name: Check Gradle version
+        working-directory: android
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew --version
+
+
+      - name: Show Gradle tasks
+        working-directory: android
+        shell: bash
+        run: |
+          ./gradlew tasks --all
+
+
+      - name: Build Debug APK
+        working-directory: android
+        shell: bash
+        run: |
+          chmod +x gradlew
+
+          rm -f app/build/outputs/apk/debug/app-debug.apk
+
+          ./gradlew clean
+
+          ./gradlew assembleDebug --stacktrace
+
+
+      - name: Validate APK
+        shell: bash
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "APK was not generated"
+            exit 1
+          fi
+
+          SIZE=$(stat -c%s "$APK")
+
+          echo "APK size: ${SIZE} bytes"
+
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "Invalid APK detected"
+            exit 1
+          fi
+
+          file "$APK"
+          ls -lh "$APK"
+
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
         with:
-          name: debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: AllanVarianceStudio-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
