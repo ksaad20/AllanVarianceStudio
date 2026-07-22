@@ -109,10 +109,6 @@ updates:
     labels:
       - "dependencies"
       - "docker"
-    # Removed invalid ignore block for Docker.
-    # The docker-minor-patch group already limits to minor/patch updates.
-    # For pre-release tags (rc, beta, alpha), rely on manual review or 
-    # add specific image name ignores if needed.
     groups:
       docker-minor-patch:
         patterns:
