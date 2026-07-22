@@ -1,120 +1,78 @@
 # =============================================================================
-# AllanVarianceStudio — Production-Ready Multi-Stage Dockerfile
-# =============================================================================
-# Multi-stage build for optimized image size and security.
-# Supports: Python backend (Allan variance analysis) + Android build environment
+# AllanVarianceStudio
+# Production Multi-stage Dockerfile
 # =============================================================================
 
-# ---------------------------------------------------------------------------
-# STAGE 1: Base Python Environment
-# ---------------------------------------------------------------------------
-FROM python:3.14-slim-bookworm AS python-base
+############################
+# Stage 1 - Base
+############################
+FROM python:3.14-slim-bookworm AS base
 
-# Security: Run as non-root user
-ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1     PIP_NO_CACHE_DIR=1     PIP_DISABLE_PIP_VERSION_CHECK=1     PIP_DEFAULT_TIMEOUT=100     POETRY_NO_INTERACTION=1     POETRY_VIRTUALENVS_IN_PROJECT=1     POETRY_CACHE_DIR=/tmp/poetry_cache
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies required for scientific Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    g++ \
-    gfortran \
-    libopenblas-dev \
-    liblapack-dev \
-    libffi-dev \
-    libssl-dev \
-    git \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        gcc \
+        g++ \
+        gfortran \
+        git \
+        curl \
+        ca-certificates \
+        libopenblas-dev \
+        liblapack-dev \
+        libffi-dev \
+        libssl-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN groupadd --gid 1000 appgroup && \
-    useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser
+RUN python -m venv /opt/venv
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+############################
+# Stage 2 - Dependencies
+############################
+FROM base AS deps
 
 WORKDIR /app
 
-# ---------------------------------------------------------------------------
-# STAGE 2: Python Dependencies
-# ---------------------------------------------------------------------------
-FROM python-base AS python-deps
+COPY requirements.txt* pyproject.toml* poetry.lock* ./
 
-# Copy dependency files first for layer caching
-COPY --chown=appuser:appgroup requirements.txt* pyproject.toml* poetry.lock* ./
+RUN pip install --upgrade pip
 
-# Install dependencies based on available files
-# Priority: requirements.txt > pyproject.toml
 RUN if [ -f requirements.txt ]; then \
-        pip install --no-cache-dir -r requirements.txt; \
+        pip install -r requirements.txt; \
     elif [ -f pyproject.toml ]; then \
-        pip install --no-cache-dir poetry && \
-        poetry install --no-dev --no-ansi; \
+        pip install poetry && \
+        poetry config virtualenvs.create false && \
+        poetry install --only main; \
     else \
-        echo "WARNING: No dependency file found. Install manually."; \
+        echo "No dependency file found."; \
     fi
 
-# ---------------------------------------------------------------------------
-# STAGE 3: Android Build Environment (Optional)
-# ---------------------------------------------------------------------------
-FROM python-base AS android-builder
+############################
+# Stage 3 - Final
+############################
+FROM base AS final
 
-# Install OpenJDK for Android builds
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openjdk-17-jdk \
-    wget \
-    unzip \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=deps /opt/venv /opt/venv
 
-# Set Java environment
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-ENV PATH="${JAVA_HOME}/bin:${PATH}"
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Android SDK
-ENV ANDROID_SDK_ROOT=/opt/android-sdk
-ENV ANDROID_HOME=/opt/android-sdk
-ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+RUN groupadd -r appgroup && \
+    useradd -r -g appgroup appuser
 
-RUN mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
-    cd ${ANDROID_SDK_ROOT}/cmdline-tools && \
-    wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
-    unzip -q commandlinetools-linux-11076708_latest.zip && \
-    mv cmdline-tools latest && \
-    rm commandlinetools-linux-11076708_latest.zip
-
-# Accept licenses and install essential SDK components
-RUN yes | sdkmanager --licenses && \
-    sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-# ---------------------------------------------------------------------------
-# STAGE 4: Final Application Image
-# ---------------------------------------------------------------------------
-FROM python-base AS final
-
-# Copy installed Python packages from deps stage
-COPY --from=python-deps /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=python-deps /usr/local/bin /usr/local/bin
-
-# Copy Android SDK if needed (uncomment for Android support)
-# COPY --from=android-builder ${ANDROID_SDK_ROOT} ${ANDROID_SDK_ROOT}
-# ENV ANDROID_SDK_ROOT=/opt/android-sdk
-# ENV ANDROID_HOME=/opt/android-sdk
-# ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
-
-# Switch to non-root user
-USER appuser
-
-# Set working directory
 WORKDIR /app
 
-# Copy application code
-COPY --chown=appuser:appgroup . .
+COPY . .
 
-# Health check for container orchestration
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import allan_variance; print('OK')" || exit 1
+RUN chown -R appuser:appgroup /app
 
-# Expose port if running a web service (adjust as needed)
-# EXPOSE 8000
+USER appuser
 
-# Default command — adjust based on your app's entry point
-CMD ["python", "-m", "allan_variance"]
+HEALTHCHECK CMD python --version || exit 1
+
+CMD ["python"]
