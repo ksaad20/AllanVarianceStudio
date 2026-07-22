@@ -275,14 +275,14 @@ jobs:
           ls -la android/app/build/outputs/ || echo "outputs dir not found"
           ls -la android/app/build/outputs/apk/ 2>/dev/null || echo "apk dir not found"
 
-      - name: Upload APK
+            - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: warn  # Don't fail silently
+          if-no-files-found: warn
 
-                - name: Build Android Debug APK
+      - name: Build Android Debug APK
         run: cd android && ./gradlew assembleDebug --stacktrace --info
 
       - name: Debug - List APK files
