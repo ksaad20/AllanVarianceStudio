@@ -2,18 +2,12 @@ name: Android CI
 
 on:
   push:
-    branches: [ main, develop ]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android.yml'
+    branches: [ main ]
 
 jobs:
   build:
     name: Build Debug APK
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./android
 
     steps:
       - name: Checkout repository
@@ -25,50 +19,41 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Verify files exist
+      - name: Verify all required files exist
         run: |
-          echo "=== Current directory ==="
-          pwd
-          echo "=== Listing all files in android/ ==="
+          echo "=== Repo root ==="
           ls -la
-          echo "=== Checking gradlew ==="
-          ls -la gradlew
-          echo "=== Checking settings.gradle ==="
-          cat settings.gradle
-          echo "=== Checking root build.gradle ==="
-          cat build.gradle
-          echo "=== Checking app/build.gradle ==="
-          cat app/build.gradle
-          echo "=== Checking wrapper properties ==="
-          cat gradle/wrapper/gradle-wrapper.properties
+          echo "=== android/ directory ==="
+          ls -la android/
+          echo "=== android/app/src/main/ ==="
+          ls -R android/app/src/main/ 2>/dev/null || echo "src/main/ MISSING"
+          echo "=== gradlew check ==="
+          ls -la android/gradlew
+          file android/gradlew
+          echo "=== settings.gradle ==="
+          cat android/settings.gradle
+          echo "=== app build.gradle ==="
+          cat android/app/build.gradle
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
 
-      - name: Build Debug APK (with full output)
+      - name: Build Debug APK (will fail if error)
+        working-directory: ./android
         run: |
-          ./gradlew assembleDebug --stacktrace --info --console=plain 2>&1
+          ./gradlew clean
+          ./gradlew assembleDebug --stacktrace --info
         shell: bash
 
-      - name: Verify APK exists
+      - name: Verify APK was created
         if: always()
         run: |
-          echo "=== Searching for APK ==="
-          find . -name "*.apk" -type f 2>/dev/null || echo "NO APK FOUND"
+          echo "=== Search for APK ==="
+          find android -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || echo "NO APK FOUND"
           echo "=== Build outputs ==="
-          ls -R app/build/outputs/ 2>/dev/null || echo "No outputs directory"
+          ls -lhR android/app/build/outputs/ 2>/dev/null || echo "No outputs dir"
 
-      - name: Upload Debug APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         if: success()
         with:
