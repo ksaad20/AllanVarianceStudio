@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 # STAGE 1: Base Python Environment
 # ---------------------------------------------------------------------------
-FROM python:3.11-slim-bookworm AS python-base
+FROM python:3.14-slim-bookworm AS python-base
 
 # Security: Run as non-root user
 ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1     PIP_NO_CACHE_DIR=1     PIP_DISABLE_PIP_VERSION_CHECK=1     PIP_DEFAULT_TIMEOUT=100     POETRY_NO_INTERACTION=1     POETRY_VIRTUALENVS_IN_PROJECT=1     POETRY_CACHE_DIR=/tmp/poetry_cache
