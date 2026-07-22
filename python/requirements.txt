@@ -16,7 +16,7 @@ scipy>=1.18.0                 # Signal processing, filtering, optimization, stat
 # DATA HANDLING & I/O
 # ========================================================================
 pandas>=2.0.0                 # DataFrame handling for sensor recordings and clinical metadata
-openpyxl>=3.1.0               # Excel export for clinical reports
+openpyxl>=3.1.5               # Excel export for clinical reports
 h5py>=3.8.0                   # HDF5 binary sensor data I/O
 pyarrow>=25.0.0               # Parquet format for efficient storage
 
