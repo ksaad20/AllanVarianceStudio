@@ -24,7 +24,7 @@ pyarrow>=12.0.0               # Parquet format for efficient storage
 # SIGNAL PROCESSING & ALLAN VARIANCE
 # ========================================================================
 # Allan variance computation — IEEE Std 1293-2018 compliant
-allantools>=2019.9            # Standard Allan deviation, modified Allan, Hadamard variance
+allantools>=2024.6            # Standard Allan deviation, modified Allan, Hadamard variance
 # Alternative (more performant): 
 # allan-variance>=0.1.0       # C-accelerated implementation (optional)
 
