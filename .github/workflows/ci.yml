@@ -14,80 +14,8 @@ on:
 permissions:
   contents: read
 
+
 jobs:
-
-  android-build:
-    name: Build Android APK
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Check Android files
-        run: |
-          echo "Repository:"
-          ls -la
-
-          echo "Android directory:"
-          ls -la android
-
-          test -f android/gradlew
-          test -f android/settings.gradle
-          test -f android/build.gradle
-          test -f android/app/build.gradle
-
-      - name: Show Gradle configuration
-        working-directory: android
-        run: |
-          echo "Gradle wrapper:"
-          cat gradle/wrapper/gradle-wrapper.properties
-
-          echo "Gradle version:"
-          chmod +x gradlew
-          ./gradlew --version
-
-      - name: List Gradle tasks
-        working-directory: android
-        run: |
-          ./gradlew tasks --all
-
-      - name: Build Debug APK
-        working-directory: android
-        run: |
-          ./gradlew assembleDebug --stacktrace --info
-
-      - name: Verify APK
-        run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-
-          if [ ! -f "$APK" ]; then
-            echo "APK was not created"
-            exit 1
-          fi
-
-          echo "APK details:"
-          ls -lh "$APK"
-
-          SIZE=$(stat -c%s "$APK")
-
-          if [ "$SIZE" -lt 100000 ]; then
-            echo "APK is suspiciously small: ${SIZE} bytes"
-            exit 1
-          fi
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: AllanVarianceStudio-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-
 
   python-test:
     name: Python Tests
@@ -102,17 +30,112 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         working-directory: python
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+
           python -m pip install pytest
 
-      - name: Run tests
+      - name: Display Python structure
+        run: |
+          find python -maxdepth 4 -type f | sort
+
+      - name: Run Python tests
         working-directory: python
+        env:
+          PYTHONPATH: .
         run: |
           pytest -v
+
+
+  android-build:
+    name: Android APK Build
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+
+      - name: Verify Android project
+        run: |
+          test -f android/gradlew
+          test -f android/settings.gradle
+          test -f android/build.gradle
+          test -f android/app/build.gradle
+
+          echo "Android project detected"
+
+
+      - name: Check Gradle wrapper
+        working-directory: android
+        run: |
+          chmod +x gradlew
+
+          echo "Gradle wrapper configuration:"
+          cat gradle/wrapper/gradle-wrapper.properties
+
+          echo "Gradle version:"
+          ./gradlew --version
+
+
+      - name: List Gradle tasks
+        working-directory: android
+        run: |
+          ./gradlew tasks --all
+
+
+      - name: Build Debug APK
+        working-directory: android
+        run: |
+          rm -f app/build/outputs/apk/debug/app-debug.apk
+
+          ./gradlew clean
+
+          ./gradlew assembleDebug --stacktrace --info
+
+
+      - name: Verify APK
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "APK was not generated"
+            exit 1
+          fi
+
+          echo "APK information:"
+          ls -lh "$APK"
+
+          SIZE=$(stat -c%s "$APK")
+
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "APK is invalid. Size: ${SIZE} bytes"
+            exit 1
+          fi
+
+          file "$APK"
+
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AllanVarianceStudio-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
 
 
   docker-build:
@@ -120,13 +143,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
 
       - name: Build Docker image
         run: |
           if [ -f Dockerfile ]; then
             docker build -t allanvariancestudio .
           else
-            echo "No Dockerfile found. Skipping."
+            echo "Dockerfile not found. Skipping."
           fi
