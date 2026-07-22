@@ -65,7 +65,7 @@ fpdf2>=2.7.0                  # Alternative PDF generation (lighter weight)
 # ========================================================================
 pyyaml>=6.0                   # YAML config file parsing
 python-dotenv>=1.2.2          # Environment variable management
-loguru>=0.7.0                 # Structured logging (replaces standard logging)
+loguru>=0.7.3                 # Structured logging (replaces standard logging)
 
 # ========================================================================
 # TESTING & QUALITY ASSURANCE
