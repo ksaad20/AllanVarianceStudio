@@ -29,7 +29,7 @@ allantools>=2019.9            # Standard Allan deviation, modified Allan, Hadama
 # allan-variance>=0.1.0       # C-accelerated implementation (optional)
 
 # Spectral analysis
-spectrum>=0.8.1               # PSD estimation, Welch periodogram, Lomb-Scargle
+spectrum>=0.10.0               # PSD estimation, Welch periodogram, Lomb-Scargle
 
 # ========================================================================
 # MACHINE LEARNING & CLASSIFICATION
