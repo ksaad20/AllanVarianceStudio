@@ -30,7 +30,7 @@ RUN apt-get update && \
 
 RUN python -m venv /opt/venv
 
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:${PATH}"
 
 ############################
 # Stage 2 - Dependencies
@@ -39,40 +39,40 @@ FROM base AS deps
 
 WORKDIR /app
 
-COPY requirements.txt* pyproject.toml* poetry.lock* ./
+# Copy ONLY the dependency file from the python directory
+COPY python/requirements.txt ./requirements.txt
 
-RUN pip install --upgrade pip
+RUN python -m pip install --upgrade pip
 
-RUN if [ -f requirements.txt ]; then \
-        pip install -r requirements.txt; \
-    elif [ -f pyproject.toml ]; then \
-        pip install poetry && \
-        poetry config virtualenvs.create false && \
-        poetry install --only main; \
-    else \
-        echo "No dependency file found."; \
-    fi
+RUN python -m pip install -r requirements.txt
 
 ############################
 # Stage 3 - Final
 ############################
 FROM base AS final
 
+# Copy the virtual environment with installed packages
 COPY --from=deps /opt/venv /opt/venv
 
-ENV PATH="/opt/venv/bin:$PATH"
+ENV PATH="/opt/venv/bin:${PATH}"
 
-RUN groupadd -r appgroup && \
-    useradd -r -g appgroup appuser
+# Create a non-root user
+RUN groupadd --system appgroup && \
+    useradd --system --gid appgroup --create-home appuser
 
 WORKDIR /app
 
+# Copy the entire repository
 COPY . .
 
+# Set ownership
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
-HEALTHCHECK CMD python --version || exit 1
+# Basic health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python --version || exit 1
 
+# Default command
 CMD ["python"]
