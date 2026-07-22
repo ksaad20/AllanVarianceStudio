@@ -51,7 +51,7 @@ plotly>=5.15.0                # Interactive web-based plots for clinical dashboa
 # ========================================================================
 # STATISTICAL ANALYSIS
 # ========================================================================
-statsmodels>=0.14.0           # Regression, mixed-effects models, hypothesis testing
+statsmodels>=0.14.6           # Regression, mixed-effects models, hypothesis testing
 pingouin>=0.6.1               # Advanced statistics (Bland-Altman, ICC, reliability)
 
 # ========================================================================
