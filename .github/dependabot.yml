@@ -1,12 +1,239 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Dependabot configuration for AllanVarianceStudio
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+
+# Enable grouped updates to reduce PR noise and ensure compatibility
+groups:
+  # Group all patch-level updates into a single PR
+  patch-updates:
+    patterns:
+      - "*"
+    update-types:
+      - "patch"
+
+  # Group minor updates for non-critical dependencies
+  minor-updates:
+    patterns:
+      - "*"
+    update-types:
+      - "minor"
+    exclude-patterns:
+      - "numpy"
+      - "scipy"
+      - "matplotlib"
+      - "pandas"
+
+  # Core scientific dependencies — updated together and tested thoroughly
+  scientific-core:
+    patterns:
+      - "numpy"
+      - "scipy"
+      - "matplotlib"
+      - "pandas"
+    update-types:
+      - "minor"
+      - "patch"
+
+  # Development and testing tools
+  dev-tools:
+    patterns:
+      - "pytest*"
+      - "black"
+      - "flake8"
+      - "mypy"
+      - "isort"
+      - "pre-commit"
+    update-types:
+      - "minor"
+      - "patch"
+
+  # Documentation dependencies
+  docs:
+    patterns:
+      - "sphinx*"
+      - "mkdocs*"
+      - "myst-parser"
+    update-types:
+      - "minor"
+      - "patch"
+
+# =============================================================================
+# ECOSYSTEM CONFIGURATIONS
+# =============================================================================
+
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # ---------------------------------------------------------------------------
+  # Python (pip) — Main application dependencies
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
       interval: "weekly"
-      
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+
+    # PR behavior
+    open-pull-requests-limit: 10
+    target-branch: "main"
+
+    # Labels for easy filtering
+    labels:
+      - "dependencies"
+      - "python"
+      - "security"
+
+    # Assign reviewers based on dependency type
+    reviewers:
+      - "your-username"
+
+    # Commit message format following conventional commits
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps(dev)"
+      include: "scope"
+
+    # Vulnerability alerts — always open PRs immediately
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        applies-to: "security-updates"
+
+    # Ignore rules for known problematic versions
+    ignore:
+      # NumPy: skip versions known to break scipy compatibility
+      - dependency-name: "numpy"
+        versions: ["1.25.0", "1.25.1"]
+
+      # Matplotlib: skip major versions without manual review
+      - dependency-name: "matplotlib"
+        update-types: ["version-update:semver-major"]
+
+      # SciPy: skip major versions without manual review
+      - dependency-name: "scipy"
+        update-types: ["version-update:semver-major"]
+
+    # Allow specific update types
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+    # Vendor dependencies for better control
+    vendor: false
+
+    # Rebase strategy
+    rebase-strategy: "auto"
+
+    # Insecure external code execution policy
+    insecure-external-code-execution: "deny"
+
+  # ---------------------------------------------------------------------------
+  # Python (pip) — Development dependencies (optional: separate directory)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/requirements"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+
+    open-pull-requests-limit: 5
+    target-branch: "main"
+
+    labels:
+      - "dependencies"
+      - "python"
+      - "dev-tools"
+
+    commit-message:
+      prefix: "deps(dev)"
+      include: "scope"
+
+    groups:
+      dev-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions — CI/CD workflows
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+
+    open-pull-requests-limit: 5
+    target-branch: "main"
+
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+
+    reviewers:
+      - "your-username"
+
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------------------------------------------------------------------------
+  # Docker — Container images (if applicable)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+
+    open-pull-requests-limit: 3
+    target-branch: "main"
+
+    labels:
+      - "dependencies"
+      - "docker"
+      - "security"
+
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+
+    ignore:
+      # Only update to latest stable, not edge/rc
+      - dependency-name: "python"
+        versions: ["*-rc*", "*-beta*", "*-alpha*"]
+
+# =============================================================================
+# REGISTRY CONFIGURATION (if using private registries)
+# =============================================================================
+
+# registries:
+#   python-private:
+#     type: python-index
+#     url: https://pypi.private.example.com
+#     username: ${{ secrets.PRIVATE_PYPI_USERNAME }}
+#     password: ${{ secrets.PRIVATE_PYPI_PASSWORD }}
+#     replaces-base: true
