@@ -248,8 +248,8 @@ jobs:
           else
             echo "No integration tests found, skipping"
           fi
-
-  build-android:
+          
+      build-android:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -275,7 +275,7 @@ jobs:
           ls -la android/app/build/outputs/ || echo "outputs dir not found"
           ls -la android/app/build/outputs/apk/ 2>/dev/null || echo "apk dir not found"
 
-            - name: Upload APK
+                  - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
