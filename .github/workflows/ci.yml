@@ -2,40 +2,65 @@ name: Android CI
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
 
 jobs:
   test-python:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install Python dependencies
+      - name: Show repository structure
         run: |
-          if [ -f "python/requirements.txt" ]; then
-            cd python
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-            python -m pip install pytest
-          else
-            echo "No python/requirements.txt found. Skipping Python dependency installation."
+          pwd
+          ls -la
+          if [ -d python ]; then
+            ls -la python
           fi
 
-      - name: Run Python unit tests
+      - name: Install Python dependencies
+        shell: bash
         run: |
-          if [ -d "python/tests" ]; then
+          set -e
+
+          if [ ! -f "python/requirements.txt" ]; then
+            echo "python/requirements.txt not found."
+            exit 0
+          fi
+
+          cd python
+
+          python -m pip install --upgrade pip
+
+          echo "Installing dependencies from:"
+          pwd
+          cat requirements.txt
+
+          python -m pip install --requirement requirements.txt
+
+          python -m pip install pytest
+
+      - name: Run Python unit tests
+        shell: bash
+        run: |
+          if [ -d python/tests ]; then
             cd python
-            python -m pytest tests/ -v || true
+            python -m pytest tests -v || true
           else
-            echo "No Python tests found. Skipping."
+            echo "No Python tests found."
           fi
 
   build-android:
@@ -44,35 +69,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
           distribution: temurin
+          java-version: "17"
 
-      - name: Make gradlew executable
+      - name: Build Android
+        shell: bash
         run: |
-          if [ -f "android/gradlew" ]; then
-            chmod +x android/gradlew
-          else
-            echo "No gradlew found. Skipping Android build."
-          fi
-
-      - name: Build debug APK
-        run: |
-          if [ -f "android/gradlew" ]; then
+          if [ -f android/gradlew ]; then
             cd android
+            chmod +x gradlew
             ./gradlew assembleDebug || true
           else
-            echo "Skipping Android build."
+            echo "No Android project found."
           fi
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
           if-no-files-found: warn
 
   build-docker:
@@ -81,15 +99,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        shell: bash
         run: |
-          if [ -f "Dockerfile" ]; then
+          if [ -f Dockerfile ]; then
             docker build -t allanvariancestudio:latest .
           else
-            echo "No Dockerfile found. Skipping Docker build."
+            echo "No Dockerfile found."
           fi
 
   integration-test:
@@ -97,6 +116,7 @@ jobs:
     needs:
       - test-python
       - build-android
+
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
 
     steps:
@@ -107,22 +127,28 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Python dependencies
+      - name: Install dependencies
+        shell: bash
         run: |
-          if [ -f "python/requirements.txt" ]; then
-            cd python
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-            python -m pip install pytest
-          else
-            echo "No python/requirements.txt found. Skipping dependency installation."
+          set -e
+
+          if [ ! -f "python/requirements.txt" ]; then
+            echo "python/requirements.txt not found."
+            exit 0
           fi
 
+          cd python
+
+          python -m pip install --upgrade pip
+          python -m pip install --requirement requirements.txt
+          python -m pip install pytest
+
       - name: Run integration tests
+        shell: bash
         run: |
-          if [ -d "python/tests/integration" ]; then
+          if [ -d python/tests/integration ]; then
             cd python
-            python -m pytest tests/integration/ -v || true
+            python -m pytest tests/integration -v || true
           else
-            echo "No integration tests found. Skipping."
+            echo "No integration tests found."
           fi
