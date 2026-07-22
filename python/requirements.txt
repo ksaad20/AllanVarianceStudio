@@ -73,7 +73,7 @@ loguru>=0.7.3                 # Structured logging (replaces standard logging)
 pytest>=9.1.1                 # Unit testing framework
 pytest-cov>=7.1.0             # Code coverage reporting
 pytest-xdist>=3.3.0           # Parallel test execution
-hypothesis>=6.82.0              # Property-based testing for numerical stability
+hypothesis>=6.158.1              # Property-based testing for numerical stability
 
 # ========================================================================
 # DEVELOPMENT TOOLS (optional, for contributors)
