@@ -31,7 +31,7 @@ spectrum>=0.10.0
 # MACHINE LEARNING & CLASSIFICATION
 # ========================================================================
 scikit-learn>=1.9.0
-joblib>=1.5.3
+joblib>=1.6.0
 
 # Optional deep learning
 # tensorflow>=2.13.0
